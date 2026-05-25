@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Ordering System - Customer Registration</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: sans-serif; background: #f5f5f5; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; }
+        .hero { text-align: center; margin-bottom: 2rem; }
+        .hero h1 { font-size: 28px; font-weight: 500; color: #111; }
+        .hero p { font-size: 15px; color: #666; margin-top: 0.5rem; }
+        
+        /* Register Container Style */
+        .register-card { background: #fff; border: 2px solid #0F6E56; border-radius: 12px; padding: 2rem; width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 1.25rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        
+        /* Form groups */
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .form-group label { font-size: 13px; font-weight: 500; color: #444; }
+        .input-wrapper { position: relative; display: flex; align-items: center; }
+        .input-wrapper i { position: absolute; left: 12px; color: #888; font-size: 18px; }
+        .input-wrapper input { width: 100%; padding: 10px 12px 10px 38px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; outline: none; transition: border-color 0.2s; }
+        .input-wrapper input:focus { border-color: #0F6E56; }
+        
+        /* Buttons & Links */
+        .btn { display: block; text-align: center; padding: 11px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; text-decoration: none; border: none; width: 100%; }
+        .btn-teal { background: #0F6E56; color: #fff; }
+        .btn-teal:hover { background: #085041; }
+        
+        .divider { text-align: center; font-size: 13px; color: #666; margin-top: 0.5rem; }
+        .divider a { color: #0F6E56; font-weight: 500; text-decoration: none; }
+        .divider a:hover { text-decoration: underline; }
+        
+        .footer { margin-top: 2rem; font-size: 12px; color: #aaa; }
+    </style>
+</head>
+<body>
+
+    <div class="hero">
+        <h1>Create an Account</h1>
+        <p>Join us today to start browsing and ordering motorcycle parts!</p>
+    </div>
+
+    <div class="register-card">
+        <form action="<?= base_url('register') ?>" method="POST" style="display: flex; flex-direction: column; gap: 1.25rem;">
+            <?= csrf_field() ?>
+
+            <div class="form-group">
+                <label for="fullname">Full Name</label>
+                <div class="input-wrapper">
+                    <i class="ti ti-user"></i>
+                    <input type="text" id="fullname" name="fullname" placeholder="Enter your full name" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <div class="input-wrapper">
+                    <i class="ti ti-mail"></i>
+                    <input type="email" id="email" name="email" placeholder="Enter your email" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <div class="input-wrapper">
+                    <i class="ti ti-lock"></i>
+                    <input type="password" id="password" name="password" placeholder="Create a password" required>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-teal">
+                Register Now <i class="ti ti-user-plus" style="font-size: 14px; margin-left: 4px; vertical-align: middle;"></i>
+            </button>
+        </form>
+
+        <div class="divider">
+            Already have an account? <a href="<?= base_url('login') ?>">Log in here</a>
+        </div>
+    </div>
+
+    <div class="footer">Ordering System &copy; <?= date('Y') ?></div>
+
+</body>
+</html>
