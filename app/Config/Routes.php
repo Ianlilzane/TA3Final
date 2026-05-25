@@ -13,6 +13,9 @@ $routes->setAutoRoute(false);
 // Auth routes
 $routes->get('register', 'AuthController::register');
 $routes->post('register', 'AuthController::registerStore');
+$routes->get('verify-otp', 'AuthController::verifyOtp');
+$routes->post('verify-otp', 'AuthController::verifyOtpStore');
+$routes->post('resend-otp', 'AuthController::resendOtp');
 $routes->get('login', 'AuthController::login');
 $routes->post('login', 'AuthController::loginStore');
 $routes->get('logout', 'AuthController::logout');

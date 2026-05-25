@@ -3,9 +3,19 @@
 namespace App\Controllers;
 
 use App\Models\UserModel;
+use App\Libraries\OtpService;
 
 class AuthController extends BaseController
 {
+    protected $userModel;
+    protected $otpService;
+
+    public function __construct()
+    {
+        $this->userModel = new UserModel();
+        $this->otpService = new OtpService();
+    }
+
     public function register()
     {
         return view('auth/register');
@@ -14,8 +24,6 @@ class AuthController extends BaseController
     public function registerStore()
     {
         $session = session();
-        $userModel = new UserModel();
-
         $fullname = trim($this->request->getPost('fullname'));
         $email = trim($this->request->getPost('email'));
         $password = $this->request->getPost('password');
@@ -55,7 +63,7 @@ class AuthController extends BaseController
             $errors[] = 'Passwords do not match.';
         }
 
-        if ($email && $userModel->where('email', $email)->first()) {
+        if ($email && $this->userModel->where('email', $email)->first()) {
             $errors[] = 'The email address is already registered.';
         }
 
@@ -63,16 +71,70 @@ class AuthController extends BaseController
             return redirect()->back()->withInput()->with('errors', $errors);
         }
 
+        // Create user account
         $data = [
             'role_id'  => 2,
             'fullname' => $fullname,
             'email'    => $email,
             'password' => password_hash($password, PASSWORD_DEFAULT),
+            'is_verified' => false,
         ];
 
-        $userModel->insert($data);
+        $this->userModel->insert($data);
 
-        return redirect()->to('/login')->with('success', 'Your account has been created. Please sign in.');
+        // Generate and send OTP
+        $otpResult = $this->otpService->generateAndSendOtp($email);
+
+        if (!$otpResult['success']) {
+            return redirect()->back()->with('error', $otpResult['message']);
+        }
+
+        // Redirect to OTP verification page
+        return redirect()->to('/verify-otp?email=' . urlencode($email))
+                         ->with('success', 'Account created! Please check your email for the OTP code.');
+    }
+
+    public function verifyOtp()
+    {
+        $email = $this->request->getGet('email');
+        if (!$email) {
+            return redirect()->to('/login')->with('error', 'Invalid verification request.');
+        }
+        return view('auth/verify_otp', ['email' => $email]);
+    }
+
+    public function verifyOtpStore()
+    {
+        $email = trim($this->request->getPost('email'));
+        $otp = trim($this->request->getPost('otp'));
+
+        if (empty($email) || empty($otp)) {
+            return redirect()->back()->withInput()->with('error', 'Email and OTP are required.');
+        }
+
+        $result = $this->otpService->verifyOtp($email, $otp);
+
+        if (!$result['success']) {
+            return redirect()->back()->withInput()->with('error', $result['message']);
+        }
+
+        return redirect()->to('/login')->with('success', 'Email verified successfully! You can now log in.');
+    }
+
+    public function resendOtp()
+    {
+        $email = trim($this->request->getPost('email'));
+
+        if (empty($email)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Email is required.'
+            ]);
+        }
+
+        $result = $this->otpService->resendOtp($email);
+
+        return $this->response->setJSON($result);
     }
 
     public function login()
@@ -85,16 +147,22 @@ class AuthController extends BaseController
         $email = trim($this->request->getPost('email'));
         $password = $this->request->getPost('password');
         $selectedRole = $this->request->getPost('role') ?? 'customer';
-        $userModel = new UserModel();
 
         if (empty($email) || empty($password)) {
             return redirect()->back()->withInput()->with('error', 'Email and password are required.');
         }
 
-        $user = $userModel->where('email', $email)->first();
+        $user = $this->userModel->where('email', $email)->first();
 
         if (!$user || !password_verify($password, $user['password'])) {
             return redirect()->back()->withInput()->with('error', 'Invalid email or password.');
+        }
+
+        // Check if user is verified (guard if column missing)
+        if (!isset($user['is_verified']) || !$user['is_verified']) {
+            $otpResult = $this->otpService->generateAndSendOtp($email);
+            return redirect()->to('/verify-otp?email=' . urlencode($email))
+                           ->with('warning', 'Your email is not verified. Please verify to continue.');
         }
 
         $expectedRoleId = $selectedRole === 'admin'

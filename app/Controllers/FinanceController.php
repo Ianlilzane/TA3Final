@@ -17,9 +17,9 @@ class FinanceController extends BaseController
         // 1. Buhayin ang totoong connection sa Orders database table
         $orderModel = new OrderModel();
 
-        // 2. Kuhanin lang ang mga orders na bayad na o aprubado na (Kargadong benta)
-        // ⚠️ TANDAAN: Palitan mo ang 'Order Approved / Out for Delivery' base sa saktong spelling ng status sa DB mo
-        $approvedOrders = $orderModel->where('status', 'Order Approved / Out for Delivery')
+        // 2. Kuhanin lang ang mga orders na bayad na o aprubado/completed na (Kargadong benta)
+        $revenueStatuses = ['Order Approved / Out for Delivery', 'Delivered & Completed'];
+        $approvedOrders = $orderModel->whereIn('status', $revenueStatuses)
                                     ->orderBy('id', 'DESC')
                                     ->findAll();
         
@@ -50,8 +50,9 @@ class FinanceController extends BaseController
 
         $orderModel = new OrderModel();
         
-        // Kuhanin ang lahat ng orders na cleared na para sa history tab
-        $data['paidOrders'] = $orderModel->where('status', 'Order Approved / Out for Delivery')
+        // Kuhanin ang lahat ng orders na cleared/completed na para sa history tab
+        $historyStatuses = ['Order Approved / Out for Delivery', 'Delivered & Completed'];
+        $data['paidOrders'] = $orderModel->whereIn('status', $historyStatuses)
                                          ->orderBy('id', 'DESC')
                                          ->findAll();
                                          
