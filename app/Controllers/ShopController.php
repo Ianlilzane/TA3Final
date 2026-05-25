@@ -12,6 +12,27 @@ class ShopController extends BaseController
     {
         // Pag-connect sa iyong Database setup
         $this->db = \Config\Database::connect();
+        $this->ensureImageUrlColumn();
+    }
+
+    /**
+     * Ensure image_url column exists in products table
+     */
+    private function ensureImageUrlColumn()
+    {
+        try {
+            $hasImageColumn = (bool) $this->db->query("SHOW COLUMNS FROM products LIKE 'image_url'")->getRowArray();
+            if (!$hasImageColumn) {
+                $this->db->query("ALTER TABLE products ADD COLUMN image_url VARCHAR(255) NULL AFTER stock");
+            }
+
+            $hasCategoryColumn = (bool) $this->db->query("SHOW COLUMNS FROM products LIKE 'category'")->getRowArray();
+            if (!$hasCategoryColumn) {
+                $this->db->query("ALTER TABLE products ADD COLUMN category VARCHAR(100) NULL AFTER name");
+            }
+        } catch (\Exception $e) {
+            // Column might already exist or other DB issue, silently fail
+        }
     }
 
     /**

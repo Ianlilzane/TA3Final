@@ -50,9 +50,12 @@
         .cart-panel h3 { font-size: 16px; margin-bottom: 1rem; border-bottom: 1px solid #eee; padding-bottom: 8px; }
         .cart-item { display: grid; grid-template-columns: 1fr auto; gap: 12px; font-size: 13px; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px dashed #eee; }
         .cart-item-details { display: flex; flex-direction: column; gap: 6px; }
-        .cart-item-actions { display: flex; align-items: center; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
-        .cart-item-actions button { border: none; border-radius: 8px; background: #e5e7eb; color: #111; width: 32px; height: 32px; cursor: pointer; font-size: 14px; font-weight: 700; }
-        .cart-item-actions button.remove { background: #dc2626; color: white; min-width: 32px; padding: 0 10px; }
+        .cart-item-actions { display: flex; align-items: center; justify-content: flex-start; gap: 4px; margin-top: 6px; }
+        .cart-item-actions button { border: none; border-radius: 6px; background: #e5e7eb; color: #111; width: 28px; height: 28px; cursor: pointer; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .cart-item-actions button:hover { background: #d1d5db; }
+        .cart-item-actions .qty-display { min-width: 32px; text-align: center; font-weight: 600; font-size: 14px; }
+        .cart-item-actions button.remove { background: #dc2626; color: white; min-width: 28px; padding: 0; margin-left: 4px; }
+        .cart-item-actions button.remove:hover { background: #b91c1c; }
         .cart-total { display: flex; justify-content: space-between; font-weight: bold; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #ddd; font-size: 15px; }
         .btn-checkout { background: #0F6E56; color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; font-weight: bold; margin-top: 1rem; cursor: pointer; font-size: 13px; }
         .btn-checkout:hover { background: #085041; }
@@ -334,10 +337,10 @@
                             <strong>${item.name}</strong>
                             <span style="color:#666;">₱${item.price.toLocaleString(undefined, {minimumFractionDigits: 2})} each</span>
                             <div class="cart-item-actions">
-                                <button type="button" onclick="adjustCartQty(${JSON.stringify(item.name)}, -1)">-</button>
-                                <span style="min-width: 28px; text-align: center; font-weight: 600;">${item.qty}</span>
-                                <button type="button" onclick="adjustCartQty(${JSON.stringify(item.name)}, 1)">+</button>
-                                <button type="button" class="remove" onclick="removeCartItem(${JSON.stringify(item.name)})">×</button>
+                                <button type="button" onclick="adjustCartQty('${item.name.replace(/'/g, "\\'")}', -1)">−</button>
+                                <span class="qty-display">${item.qty}</span>
+                                <button type="button" onclick="adjustCartQty('${item.name.replace(/'/g, "\\'")}', 1)">+</button>
+                                <button type="button" class="remove" onclick="removeCartItem('${item.name.replace(/'/g, "\\'")}')" style="min-width:32px;">✕</button>
                             </div>
                         </div>
                         <span style="font-weight:600; color:#185FA5; align-self:flex-start;">₱${currentSubtotal.toFixed(2)}</span>

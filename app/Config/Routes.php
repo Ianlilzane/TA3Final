@@ -30,6 +30,7 @@ $routes->group('admin', ['filter' => 'adminfilter'], function($routes) {
     $routes->get('dashboard', 'Admin\DashboardController::index');
     $routes->post('dashboard/updateStatus', 'Admin\DashboardController::updateStatus');
     $routes->post('dashboard/updateImage', 'Admin\DashboardController::updateProductImage');
+    $routes->post('dashboard/uploadProductImage', 'Admin\DashboardController::uploadProductImage');
     $routes->post('dashboard/createProduct', 'Admin\DashboardController::createProduct');
     $routes->post('dashboard/updateProduct', 'Admin\DashboardController::updateProduct');
     $routes->post('dashboard/deleteProduct', 'Admin\DashboardController::deleteProduct');

@@ -219,7 +219,7 @@ $bestSellers = $bestSellers ?? [];
             </div>
             <div class="panel">
                 <h4><i class="ti ti-plus"></i> Add New Product</h4>
-                <form action="<?= base_url('admin/dashboard/createProduct') ?>" method="POST" class="admin-form-grid">
+                <form action="<?= base_url('admin/dashboard/createProduct') ?>" method="POST" enctype="multipart/form-data" class="admin-form-grid">
                     <?= csrf_field() ?>
                     <div class="form-group">
                         <label>Product Name</label>
@@ -244,8 +244,8 @@ $bestSellers = $bestSellers ?? [];
                         <input type="number" name="stock" min="0" placeholder="0" required>
                     </div>
                     <div class="form-group" style="grid-column: span 2;">
-                        <label>Image URL (optional)</label>
-                        <input type="url" name="image_url" placeholder="https://example.com/product-image.jpg">
+                        <label>Product Image (optional)</label>
+                        <input type="file" name="product_image" accept="image/jpeg,image/png,image/gif,image/webp">
                     </div>
                     <div class="form-group" style="grid-column: span 2; text-align:right; margin-top:0.3rem;">
                         <button type="submit" class="btn-approve" style="width:auto;">Add Product</button>
@@ -429,35 +429,44 @@ $bestSellers = $bestSellers ?? [];
         }
 
         function promptImageUpdate(productId) {
-            const imageUrl = prompt('Enter a public image URL for this product:');
-            if (!imageUrl) {
-                return;
-            }
-
-            const validUrl = /^https?:\/\/.+$/i;
-            if (!validUrl.test(imageUrl)) {
-                alert('Please provide a valid image URL that begins with http:// or https://');
-                return;
-            }
-
-            let formData = new window.FormData();
-            formData.append('product_id', productId);
-            formData.append('image_url', imageUrl);
-
-            fetch('<?= base_url("admin/dashboard/updateImage") ?>', {
-                method: 'POST',
-                body: formData
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    alert(data.message);
-                    window.location.reload();
-                } else {
-                    alert('Error: ' + data.message);
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = 'image/jpeg,image/png,image/gif,image/webp';
+            
+            fileInput.onchange = function() {
+                if (!fileInput.files || !fileInput.files[0]) {
+                    return;
                 }
-            })
-            .catch(() => alert('Unable to update image.'));
+                
+                const file = fileInput.files[0];
+                const maxSize = 5 * 1024 * 1024; // 5MB
+                
+                if (file.size > maxSize) {
+                    alert('Image file size must be less than 5MB.');
+                    return;
+                }
+
+                let formData = new window.FormData();
+                formData.append('product_id', productId);
+                formData.append('image_file', file);
+
+                fetch('<?= base_url("admin/dashboard/uploadProductImage") ?>', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert(data.message);
+                        window.location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(() => alert('Unable to upload image.'));
+            };
+            
+            fileInput.click();
         }
 
         function promptEditProduct(productId, currentName, currentCategory, currentPrice, currentStock, currentImageUrl) {
@@ -473,9 +482,6 @@ $bestSellers = $bestSellers ?? [];
             const stock = prompt('Stock Quantity', currentStock);
             if (stock === null) return;
 
-            const imageUrl = prompt('Image URL (optional)', currentImageUrl || '');
-            if (imageUrl === null) return;
-
             if (name.trim() === '' || category.trim() === '' || isNaN(parseFloat(price)) || isNaN(parseInt(stock, 10))) {
                 alert('Please provide valid values for name, category, price, and stock.');
                 return;
@@ -487,7 +493,6 @@ $bestSellers = $bestSellers ?? [];
             formData.append('category', category.trim());
             formData.append('price', parseFloat(price));
             formData.append('stock', parseInt(stock, 10));
-            formData.append('image_url', imageUrl.trim());
 
             fetch('<?= base_url("admin/dashboard/updateProduct") ?>', {
                 method: 'POST',

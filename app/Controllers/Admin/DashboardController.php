@@ -11,6 +11,27 @@ class DashboardController extends BaseController
     public function __construct()
     {
         $this->db = \Config\Database::connect();
+        $this->ensureImageUrlColumn();
+    }
+
+    /**
+     * Ensure image_url column exists in products table
+     */
+    private function ensureImageUrlColumn()
+    {
+        try {
+            $hasImageColumn = (bool) $this->db->query("SHOW COLUMNS FROM products LIKE 'image_url'")->getRowArray();
+            if (!$hasImageColumn) {
+                $this->db->query("ALTER TABLE products ADD COLUMN image_url VARCHAR(255) NULL AFTER stock");
+            }
+
+            $hasCategoryColumn = (bool) $this->db->query("SHOW COLUMNS FROM products LIKE 'category'")->getRowArray();
+            if (!$hasCategoryColumn) {
+                $this->db->query("ALTER TABLE products ADD COLUMN category VARCHAR(100) NULL AFTER name");
+            }
+        } catch (\Exception $e) {
+            // Column might already exist or other DB issue, silently fail
+        }
     }
 
     public function index()
@@ -135,7 +156,7 @@ class DashboardController extends BaseController
         $category = trim($this->request->getPost('category'));
         $price = $this->request->getPost('price');
         $stock = $this->request->getPost('stock');
-        $imageUrl = trim($this->request->getPost('image_url')) ?: null;
+        $file = $this->request->getFile('product_image');
 
         if ($name === '' || $category === '' || $price === '' || $stock === '') {
             return redirect()->back()->with('error', 'Name, category, price, and stock are required to create a product.');
@@ -145,11 +166,32 @@ class DashboardController extends BaseController
             return redirect()->back()->with('error', 'Price and stock must be valid non-negative numbers.');
         }
 
-        $hasImageColumn = (bool) $this->db->query("SHOW COLUMNS FROM products LIKE 'image_url'")->getRowArray();
+        $imageUrl = null;
 
-        if ($imageUrl !== null && $imageUrl !== '' && !filter_var($imageUrl, FILTER_VALIDATE_URL)) {
-            return redirect()->back()->with('error', 'Please provide a valid image URL if you add one.');
+        // Handle image upload
+        if ($file && $file->isValid()) {
+            if (!in_array($file->getMimeType(), ['image/jpeg', 'image/png', 'image/gif', 'image/webp'])) {
+                return redirect()->back()->with('error', 'Only image files (JPEG, PNG, GIF, WebP) are allowed.');
+            }
+
+            if ($file->getSize() > 5 * 1024 * 1024) {
+                return redirect()->back()->with('error', 'Image file size must be less than 5MB.');
+            }
+
+            try {
+                $fileName = 'product_' . uniqid() . '.' . $file->getExtension();
+                $uploadPath = FCPATH . 'uploads' . DIRECTORY_SEPARATOR . 'products';
+                if (!is_dir($uploadPath)) {
+                    mkdir($uploadPath, 0755, true);
+                }
+                $file->move($uploadPath, $fileName);
+                $imageUrl = base_url('uploads/products/' . $fileName);
+            } catch (\Exception $e) {
+                return redirect()->back()->with('error', 'Unable to upload image: ' . $e->getMessage());
+            }
         }
+
+        $hasImageColumn = (bool) $this->db->query("SHOW COLUMNS FROM products LIKE 'image_url'")->getRowArray();
 
         if ($hasImageColumn) {
             $this->db->query("INSERT INTO products (name, category, price, stock, image_url) VALUES (?, ?, ?, ?, ?)", [$name, $category, $price, $stock, $imageUrl]);
@@ -171,7 +213,6 @@ class DashboardController extends BaseController
         $category = trim($this->request->getPost('category'));
         $price = $this->request->getPost('price');
         $stock = $this->request->getPost('stock');
-        $imageUrl = trim($this->request->getPost('image_url')) ?: null;
 
         if (!$productId || $name === '' || $category === '' || $price === '' || $stock === '') {
             return $this->response->setJSON(['status' => 'error', 'message' => 'All fields are required when updating a product.']);
@@ -181,14 +222,10 @@ class DashboardController extends BaseController
             return $this->response->setJSON(['status' => 'error', 'message' => 'Price and stock must be valid non-negative numbers.']);
         }
 
-        if ($imageUrl !== null && $imageUrl !== '' && !filter_var($imageUrl, FILTER_VALIDATE_URL)) {
-            return $this->response->setJSON(['status' => 'error', 'message' => 'Please provide a valid image URL if you add one.']);
-        }
-
         $hasImageColumn = (bool) $this->db->query("SHOW COLUMNS FROM products LIKE 'image_url'")->getRowArray();
 
         if ($hasImageColumn) {
-            $this->db->query("UPDATE products SET name = ?, category = ?, price = ?, stock = ?, image_url = ? WHERE id = ?", [$name, $category, $price, $stock, $imageUrl, $productId]);
+            $this->db->query("UPDATE products SET name = ?, category = ?, price = ?, stock = ? WHERE id = ?", [$name, $category, $price, $stock, $productId]);
         } else {
             $this->db->query("UPDATE products SET name = ?, category = ?, price = ?, stock = ? WHERE id = ?", [$name, $category, $price, $stock, $productId]);
         }
@@ -210,6 +247,50 @@ class DashboardController extends BaseController
 
         $this->db->query("DELETE FROM products WHERE id = ?", [$productId]);
         return $this->response->setJSON(['status' => 'success', 'message' => 'Product removed successfully from inventory.']);
+    }
+
+    public function uploadProductImage()
+    {
+        if (!session()->get('logged_in') || session()->get('role_id') != 1) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Unauthorized.']);
+        }
+
+        $productId = $this->request->getPost('product_id');
+        $file = $this->request->getFile('image_file');
+
+        if (!$productId) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Product ID is required.']);
+        }
+
+        if (!$file || !$file->isValid()) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'No valid image file uploaded.']);
+        }
+
+        if (!in_array($file->getMimeType(), ['image/jpeg', 'image/png', 'image/gif', 'image/webp'])) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Only image files (JPEG, PNG, GIF, WebP) are allowed.']);
+        }
+
+        if ($file->getSize() > 5 * 1024 * 1024) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Image file size must be less than 5MB.']);
+        }
+
+        try {
+            $fileName = 'product_' . $productId . '_' . time() . '.' . $file->getExtension();
+            $uploadPath = FCPATH . 'uploads' . DIRECTORY_SEPARATOR . 'products';
+            if (!is_dir($uploadPath)) {
+                mkdir($uploadPath, 0755, true);
+            }
+            $file->move($uploadPath, $fileName);
+
+            $imagePath = base_url('uploads/products/' . $fileName);
+
+            // Update the product with the image path
+            $this->db->query("UPDATE products SET image_url = ? WHERE id = ?", [$imagePath, $productId]);
+
+            return $this->response->setJSON(['status' => 'success', 'message' => 'Product image uploaded successfully.', 'image_url' => $imagePath]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Unable to upload image: ' . $e->getMessage()]);
+        }
     }
 
     public function updateProductImage()
