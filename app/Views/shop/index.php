@@ -3,9 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <title>MotoParts Express - Customer Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', 'Segoe UI', sans-serif; }
         body { background: #f5f5f5; min-height: 100vh; padding-bottom: 3rem; }
         
         /* Navbar Layout */
@@ -124,16 +127,18 @@
                         <div class="product-card" data-category="<?= esc($p['category']) ?>">
                             <div>
                                 <div class="product-img-holder" style="background: #e0f2fe; color: #0284c7;">
-                                    <?php if($p['category'] === 'Engine Parts'): ?>
-                                        <i class="ti ti-bolt"></i>
-                                    <?php elseif($p['category'] === 'Brake Set'): ?>
-                                        <i class="ti ti-disc"></i>
-                                    <?php elseif($p['category'] === 'Tire and Wheels'): ?>
-                                        <i class="ti ti-circle-dot"></i>
-                                    <?php else: ?>
-                                        <i class="ti ti-settings"></i>
-                                    <?php endif; ?>
-                                </div>
+                                <?php if (!empty($p['image_url'])): ?>
+                                    <img src="<?= esc($p['image_url']) ?>" alt="<?= esc($p['name']) ?>" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px;" />
+                                <?php elseif($p['category'] === 'Engine Parts'): ?>
+                                    <i class="ti ti-bolt"></i>
+                                <?php elseif($p['category'] === 'Brake Set'): ?>
+                                    <i class="ti ti-disc"></i>
+                                <?php elseif($p['category'] === 'Tire and Wheels'): ?>
+                                    <i class="ti ti-circle-dot"></i>
+                                <?php else: ?>
+                                    <i class="ti ti-settings"></i>
+                                <?php endif; ?>
+                            </div>
                                 <h3 class="product-title" style="margin-top: 10px;"><?= esc($p['name']) ?></h3>
                                 <p style="font-size: 11px; margin-top: 2px; font-weight: bold; color: <?= $p['stock'] <= 5 ? '#dc2626' : '#16a34a' ?>;">
                                     Stock: <?= $p['stock'] ?> pcs left
@@ -185,9 +190,14 @@
                         <textarea id="cust-address" rows="3" placeholder="House/Unit No, Street, Barangay, City, Province" required></textarea>
                     </div>
                 </div>
-                <button type="submit" class="btn-checkout" style="margin-top:1.5rem;">
-                    Confirm Order & Save
-                </button>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top:1rem;">
+                    <button type="button" class="btn-checkout" style="background: #9ca3af;" onclick="closeCheckoutModal()">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn-checkout" style="margin-top:0;">
+                        Confirm Order & Save
+                    </button>
+                </div>
             </form>
         </div>
     </div>
@@ -217,23 +227,32 @@
                                     <td style="color:#185FA5; font-weight:600;">₱<?= number_format($order['total_amount'], 2) ?></td>
                                     <td>
                                         <?php if($order['status'] === 'Pending Approval'): ?>
-                                            <span style="background: #fef3c7; color: #d97706; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; display: inline-flex; align-items: center; gap: 4px;">
+                                        <div style="display: flex; flex-direction: column; gap: 8px; align-items: flex-start;">
+                                            <span style="background: #fef3c7; color: #d97706; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; display: inline-flex; align-items: center; gap: 4px;">
                                                 <i class="ti ti-clock"></i> Pending Approval
                                             </span>
-                                        <?php elseif($order['status'] === 'Out for Delivery'): ?>
-                                            <div style="display: flex; flex-direction: column; gap: 5px;">
-                                                <span style="background: #e6f1fb; color: #185FA5; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; width: fit-content; display: inline-flex; align-items: center; gap: 4px;">
-                                                    <i class="ti ti-truck"></i> Delivering...
-                                                </span>
-                                                <button onclick="customerReceivedOrder(<?= $order['id'] ?>)" style="background: #16a34a; color: white; border: none; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 2px; justify-content: center;">
-                                                    Confirm Received ✔️
-                                                </button>
-                                            </div>
-                                        <?php else: ?>
-                                            <span style="background: #e1f5ee; color: #0f6e56; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; display: inline-flex; align-items: center; gap: 4px;">
-                                                <i class="ti ti-circle-check"></i> Delivered & Completed
+                                            <button type="button" onclick="cancelCustomerOrder(<?= $order['id'] ?>)" style="background: #dc2626; color: white; border: none; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                                                <i class="ti ti-x"></i> Cancel Order
+                                            </button>
+                                        </div>
+                                    <?php elseif($order['status'] === 'Order Approved / Out for Delivery'): ?>
+                                        <div style="display: flex; flex-direction: column; gap: 5px;">
+                                            <span style="background: #e6f1fb; color: #185FA5; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; width: fit-content; display: inline-flex; align-items: center; gap: 4px;">
+                                                <i class="ti ti-truck"></i> Delivering...
                                             </span>
-                                        <?php endif; ?>
+                                            <button onclick="customerReceivedOrder(<?= $order['id'] ?>)" style="background: #16a34a; color: white; border: none; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 2px; justify-content: center;">
+                                                Confirm Received ✔️
+                                            </button>
+                                        </div>
+                                    <?php elseif($order['status'] === 'Delivered & Completed'): ?>
+                                        <span style="background: #e1f5ee; color: #0f6e56; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; display: inline-flex; align-items: center; gap: 4px;">
+                                            <i class="ti ti-circle-check"></i> Delivered & Completed
+                                        </span>
+                                    <?php else: ?>
+                                        <span style="background: #f8d7da; color: #842029; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; display: inline-flex; align-items: center; gap: 4px;">
+                                            <i class="ti ti-alert-circle"></i> <?= esc($order['status']) ?>
+                                        </span>
+                                    <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -369,6 +388,28 @@
                 if(data.status === 'success') {
                     alert(data.message);
                     window.location.reload(); 
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(err => alert('Network system communication failure.'));
+        }
+
+        function cancelCustomerOrder(orderId) {
+            if(!confirm("Do you want to cancel this pending order?")) return;
+
+            let formData = new FormData();
+            formData.append('order_id', orderId);
+
+            fetch('<?= base_url("shop/cancelOrder") ?>', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert(data.message);
+                    window.location.reload();
                 } else {
                     alert('Error: ' + data.message);
                 }

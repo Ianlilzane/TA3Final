@@ -3,10 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <title>Ordering System - Login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: sans-serif; background: #f5f5f5; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; }
+        body { font-family: 'Inter', 'Segoe UI', sans-serif; background: #f5f5f5; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; }
         .hero { text-align: center; margin-bottom: 2rem; }
         .hero h1 { font-size: 28px; font-weight: 500; color: #111; }
         .hero p { font-size: 15px; color: #666; margin-top: 0.5rem; }
@@ -23,7 +26,8 @@
         .input-wrapper input:focus { border-color: #185FA5; }
         
         /* Alert Message */
-        .alert-error { background: #fee2e2; color: #dc2626; padding: 10px; border-radius: 8px; font-size: 13px; text-align: center; border: 1px solid #fca5a5; }
+        .alert-error { background: #fee2e2; color: #b91c1c; padding: 12px 14px; border-radius: 10px; font-size: 13px; text-align: center; border: 1px solid #fca5a5; margin-bottom: 0.75rem; }
+        .alert-success { background: #ecfdf5; color: #166534; padding: 12px 14px; border-radius: 10px; font-size: 13px; text-align: center; border: 1px solid #bbf7d0; margin-bottom: 0.75rem; }
 
         /* Buttons & Links */
         .btn { display: block; text-align: center; padding: 11px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; text-decoration: none; border: none; width: 100%; }
@@ -46,9 +50,15 @@
 
     <div class="login-card">
         
+        <?php if (session()->getFlashdata('success')): ?>
+            <div class="alert-success">
+                <?= esc(session()->getFlashdata('success')) ?>
+            </div>
+        <?php endif; ?>
+
         <?php if (session()->getFlashdata('error')): ?>
             <div class="alert-error">
-                <?= implode(' ', (array)session()->getFlashdata('error')) ?>
+                <?= esc(session()->getFlashdata('error')) ?>
             </div>
         <?php endif; ?>
 
@@ -57,7 +67,7 @@
                 <label for="email">Email Address</label>
                 <div class="input-wrapper">
                     <i class="ti ti-mail"></i>
-                    <input type="email" id="email" name="email" placeholder="Enter your email" required>
+                    <input type="email" id="email" name="email" placeholder="Enter your email" value="<?= esc(old('email')) ?>" required>
                 </div>
             </div>
 

@@ -15,14 +15,8 @@ class DashboardController extends BaseController
 
     public function index()
     {
-        // 🚀 TESTING BYPASS OVERRIDE: 
-        // Baguhin mo itong gawing 'true' kung gusto mong pumasok DRETSO nang walang harang ang login form.
-        $bypassLoginForTesting = true; 
-
-        if (!$bypassLoginForTesting) {
-            if (!session()->get('is_logged_in') || session()->get('role_id') != 1) {
-                return redirect()->to(base_url('login'));
-            }
+        if (!session()->get('logged_in') || session()->get('role_id') != 1) {
+            return redirect()->to(base_url('login'));
         }
 
         // 1. Kuhanin ang Kabuuang Benta (Kasama ang mga Approved at Completed Orders)
@@ -129,5 +123,37 @@ class DashboardController extends BaseController
         $this->db->query("UPDATE orders SET status = ? WHERE id = ?", [$newStatus, $orderId]);
 
         return $this->response->setJSON(['status' => 'success', 'message' => $msg]);
+    }
+
+    public function updateProductImage()
+    {
+        if (!session()->get('logged_in') || session()->get('role_id') != 1) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Unauthorized.']);
+        }
+
+        $productId = $this->request->getPost('product_id');
+        $imageUrl = trim($this->request->getPost('image_url'));
+
+        if (!$productId || $imageUrl === '') {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Product ID and image URL are required.']);
+        }
+
+        if (!filter_var($imageUrl, FILTER_VALIDATE_URL)) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Please provide a valid image URL.']);
+        }
+
+        try {
+            $hasColumn = $this->db->query("SHOW COLUMNS FROM products LIKE 'image_url'")->getRowArray();
+
+            if (!$hasColumn) {
+                return $this->response->setJSON(['status' => 'error', 'message' => 'Product image column is not defined in the database.']);
+            }
+
+            $this->db->query("UPDATE products SET image_url = ? WHERE id = ?", [$imageUrl, $productId]);
+
+            return $this->response->setJSON(['status' => 'success', 'message' => 'Product image updated successfully.']);
+        } catch (\Exception $e) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Unable to update product image.']);
+        }
     }
 }

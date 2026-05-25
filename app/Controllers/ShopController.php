@@ -20,21 +20,21 @@ class ShopController extends BaseController
      */
     public function index()
     {
-        // Kunin ang user_id mula sa session (May default na 7 para sa testing kung walang login session)
-        $userId = session()->get('user_id') ?? 7; 
+        if (!session()->get('logged_in')) {
+            return redirect()->to('/login');
+        }
 
-        // 1. Hilahin ang mga active orders ng customer para sa kanyang "My Purchase Records" modal
+        $userId = session()->get('user_id');
+
         $data['myOrders'] = $this->db->query(
             "SELECT * FROM orders WHERE user_id = ? ORDER BY id DESC", 
             [$userId]
         )->getResultArray();
 
-        // 2. DATABASE ALIGNMENT: Napatunayang 'name' ang gamit sa table kaya simpleng SELECT * na ang gamit natin
         $data['products'] = $this->db->query(
             "SELECT * FROM products ORDER BY id ASC"
         )->getResultArray();
 
-        // 🚀 ROUTE FIX: Itinuro sa tamang view directory (shop folder -> index.php)
         return view('shop/index', $data);
     }
 
@@ -44,38 +44,47 @@ class ShopController extends BaseController
      */
     public function placeOrder()
     {
-        $userId     = session()->get('user_id') ?? 7;
-        $fullname   = $this->request->getPost('fullname');
-        $contact    = $this->request->getPost('contact');
-        $address    = $this->request->getPost('address');
-        $items      = $this->request->getPost('items');
+        if (!session()->get('logged_in')) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Please login to place an order.']);
+        }
+
+        $userId      = session()->get('user_id');
+        $fullname    = trim($this->request->getPost('fullname'));
+        $contact     = trim($this->request->getPost('contact'));
+        $address     = trim($this->request->getPost('address'));
+        $items       = trim($this->request->getPost('items'));
         $totalAmount = $this->request->getPost('total_amount');
 
-        // Validation checking kung walang laman ang fields
-        if (!$fullname || !$contact || !$address || !$items) {
+        if (!$fullname || !$contact || !$address || !$items || !$totalAmount) {
             return $this->response->setJSON([
-                'status'  => 'error', 
+                'status'  => 'error',
                 'message' => 'Please fill in all required shipping information fields.'
             ]);
         }
 
-        // Isulat ang bagong record sa 'orders' table (Baseline Status: Pending Approval)
+        if (!preg_match('/^\+?\d{10,15}$/', preg_replace('/\s+/', '', $contact))) {
+            return $this->response->setJSON([
+                'status'  => 'error',
+                'message' => 'Please enter a valid contact number.'
+            ]);
+        }
+
         $sql = "INSERT INTO orders (user_id, fullname, contact, address, items, total_amount, status) 
                 VALUES (?, ?, ?, ?, ?, ?, 'Pending Approval')";
-        
+
         $inserted = $this->db->query($sql, [$userId, $fullname, $contact, $address, $items, $totalAmount]);
 
         if ($inserted) {
             return $this->response->setJSON([
-                'status'  => 'success', 
+                'status'  => 'success',
                 'message' => 'Order has been successfully registered to the database workflow.'
             ]);
-        } else {
-            return $this->response->setJSON([
-                'status'  => 'error', 
-                'message' => 'Database persistence layer failed to write the record.'
-            ]);
         }
+
+        return $this->response->setJSON([
+            'status'  => 'error',
+            'message' => 'Failed to save your order. Please try again later.'
+        ]);
     }
 
     /**
@@ -84,16 +93,26 @@ class ShopController extends BaseController
      */
     public function confirmDelivery()
     {
+        if (!session()->get('logged_in')) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Please login first.']);
+        }
+
         $orderId = $this->request->getPost('order_id');
-        
+
         if (!$orderId) {
             return $this->response->setJSON([
-                'status'  => 'error', 
+                'status'  => 'error',
                 'message' => 'Invalid order specification reference ID.'
             ]);
         }
 
-        // I-update ang status para maging pinal: 'Delivered & Completed'
+        $userId = session()->get('user_id');
+        $order = $this->db->query("SELECT * FROM orders WHERE id = ? AND user_id = ?", [$orderId, $userId])->getRowArray();
+
+        if (!$order) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Order not found or not your order.']);
+        }
+
         $this->db->query(
             "UPDATE orders SET status = 'Delivered & Completed' WHERE id = ?", 
             [$orderId]
@@ -103,5 +122,33 @@ class ShopController extends BaseController
             'status'  => 'success',
             'message' => 'Thank you for confirming! Order status marked as Delivered & Completed.'
         ]);
+    }
+
+    public function cancelOrder()
+    {
+        if (!session()->get('logged_in')) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Please login first.']);
+        }
+
+        $orderId = $this->request->getPost('order_id');
+        $userId = session()->get('user_id');
+
+        if (!$orderId) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Invalid order reference.']);
+        }
+
+        $order = $this->db->query("SELECT * FROM orders WHERE id = ? AND user_id = ?", [$orderId, $userId])->getRowArray();
+
+        if (!$order) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Order not found or not yours.']);
+        }
+
+        if ($order['status'] !== 'Pending Approval') {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Only pending orders can be canceled.']);
+        }
+
+        $this->db->query("UPDATE orders SET status = 'Order Rejected / Cancelled' WHERE id = ?", [$orderId]);
+
+        return $this->response->setJSON(['status' => 'success', 'message' => 'Your order has been canceled successfully.']);
     }
 }
