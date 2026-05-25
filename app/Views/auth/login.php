@@ -22,8 +22,12 @@
         .form-group label { font-size: 13px; font-weight: 500; color: #444; }
         .input-wrapper { position: relative; display: flex; align-items: center; }
         .input-wrapper i { position: absolute; left: 12px; color: #888; font-size: 18px; }
-        .input-wrapper input { width: 100%; padding: 10px 12px 10px 38px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; outline: none; transition: border-color 0.2s; }
-        .input-wrapper input:focus { border-color: #185FA5; }
+        .input-wrapper input,
+        .input-wrapper select { width: 100%; padding: 10px 12px 10px 38px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; outline: none; transition: border-color 0.2s; }
+        .input-wrapper input:focus,
+        .input-wrapper select:focus { border-color: #185FA5; }
+        
+        .input-wrapper select { appearance: none; background: white; }
         
         /* Alert Message */
         .alert-error { background: #fee2e2; color: #b91c1c; padding: 12px 14px; border-radius: 10px; font-size: 13px; text-align: center; border: 1px solid #fca5a5; margin-bottom: 0.75rem; }
@@ -76,6 +80,18 @@
                 <div class="input-wrapper">
                     <i class="ti ti-lock"></i>
                     <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="role">Login As</label>
+                <div class="input-wrapper">
+                    <i class="ti ti-user"></i>
+                    <select id="role" name="role" required>
+                        <option value="customer" <?= old('role') === 'customer' ? 'selected' : '' ?>>Customer</option>
+                        <option value="admin" <?= old('role') === 'admin' ? 'selected' : '' ?>>Admin</option>
+                        <option value="finance" <?= old('role') === 'finance' ? 'selected' : '' ?>>Finance</option>
+                    </select>
                 </div>
             </div>
 

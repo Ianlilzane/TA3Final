@@ -84,6 +84,7 @@ class AuthController extends BaseController
     {
         $email = trim($this->request->getPost('email'));
         $password = $this->request->getPost('password');
+        $selectedRole = $this->request->getPost('role') ?? 'customer';
         $userModel = new UserModel();
 
         if (empty($email) || empty($password)) {
@@ -94,6 +95,14 @@ class AuthController extends BaseController
 
         if (!$user || !password_verify($password, $user['password'])) {
             return redirect()->back()->withInput()->with('error', 'Invalid email or password.');
+        }
+
+        $expectedRoleId = $selectedRole === 'admin'
+            ? 1
+            : ($selectedRole === 'finance' ? 3 : 2);
+
+        if ((int) $user['role_id'] !== $expectedRoleId) {
+            return redirect()->back()->withInput()->with('error', 'The selected account type does not match the provided login credentials.');
         }
 
         session()->set([
