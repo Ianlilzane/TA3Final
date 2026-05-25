@@ -37,10 +37,13 @@ $bestSellers = $bestSellers ?? [];
 <head>
     <meta charset="UTF-8">
     <title>Admin Dashboard - MotoParts Express</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', 'Segoe UI', sans-serif; }
         body { display: flex; background: #f5f5f7; min-height: 100vh; color: #333; }
         
         /* Sidebar Navigation */
@@ -203,6 +206,7 @@ $bestSellers = $bestSellers ?? [];
                     <thead>
                         <tr>
                             <th>Product ID</th>
+                            <th>Image</th>
                             <th>Item Name</th>
                             <th>Category Group</th>
                             <th>Unit Retail Price</th>
@@ -214,6 +218,13 @@ $bestSellers = $bestSellers ?? [];
                         <?php foreach($inventoryProducts as $p): ?>
                         <tr>
                             <td>#PRD-<?= $p['id'] ?></td>
+                            <td style="width: 92px;">
+                                <?php if (!empty($p['image_url'])): ?>
+                                    <img src="<?= esc($p['image_url']) ?>" alt="<?= safeEsc($p['name']) ?>" style="width: 72px; height: 54px; object-fit: cover; border-radius: 8px; border:1px solid #e5e7eb;" />
+                                <?php else: ?>
+                                    <div style="width: 72px; height: 54px; display:flex; align-items:center; justify-content:center; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:8px; color:#64748b; font-size:12px;">No image</div>
+                                <?php endif; ?>
+                            </td>
                             <?php
                                 $flattenName = function($value) {
                                     $out = [];
@@ -245,6 +256,9 @@ $bestSellers = $bestSellers ?? [];
                                 <?php else: ?>
                                     <span class="badge badge-success">Fully Supplied</span>
                                 <?php endif; ?>
+                                <button type="button" onclick="promptImageUpdate(<?= $p['id'] ?>)" style="margin-top: 8px; background:#185FA5; color:white; border:none; border-radius:6px; padding:6px 10px; font-size:11px; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
+                                    <i class="ti ti-photo"></i> Set Image
+                                </button>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -355,6 +369,38 @@ $bestSellers = $bestSellers ?? [];
                 }
             })
             .catch(() => alert('Network processing failure.'));
+        }
+
+        function promptImageUpdate(productId) {
+            const imageUrl = prompt('Enter a public image URL for this product:');
+            if (!imageUrl) {
+                return;
+            }
+
+            const validUrl = /^https?:\/\/.+$/i;
+            if (!validUrl.test(imageUrl)) {
+                alert('Please provide a valid image URL that begins with http:// or https://');
+                return;
+            }
+
+            let formData = new window.FormData();
+            formData.append('product_id', productId);
+            formData.append('image_url', imageUrl);
+
+            fetch('<?= base_url("admin/dashboard/updateImage") ?>', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert(data.message);
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(() => alert('Unable to update image.'));
         }
 
         // 3. Analytics Chart Generation (DYNAMIC CONNECTED VERSION)

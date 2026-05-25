@@ -3,10 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <title>Ordering System - Customer Registration</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: sans-serif; background: #f5f5f5; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; }
+        body { font-family: 'Inter', 'Segoe UI', sans-serif; background: #f5f5f5; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; }
         .hero { text-align: center; margin-bottom: 2rem; }
         .hero h1 { font-size: 28px; font-weight: 500; color: #111; }
         .hero p { font-size: 15px; color: #666; margin-top: 0.5rem; }
@@ -21,6 +24,9 @@
         .input-wrapper i { position: absolute; left: 12px; color: #888; font-size: 18px; }
         .input-wrapper input { width: 100%; padding: 10px 12px 10px 38px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; outline: none; transition: border-color 0.2s; }
         .input-wrapper input:focus { border-color: #0F6E56; }
+        .alert-error { background: #fee2e2; color: #991b1b; padding: 12px 14px; border-radius: 10px; border: 1px solid #f5c2c7; font-size: 13px; }
+        .alert-error ul { margin: 0; padding-left: 18px; }
+        .alert-error li { margin-bottom: 0.35rem; }
         
         /* Buttons & Links */
         .btn { display: block; text-align: center; padding: 11px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; text-decoration: none; border: none; width: 100%; }
@@ -45,11 +51,21 @@
         <form action="<?= base_url('register') ?>" method="POST" style="display: flex; flex-direction: column; gap: 1.25rem;">
             <?= csrf_field() ?>
 
+            <?php if (session()->getFlashdata('errors')): ?>
+                <div class="alert-error">
+                    <ul>
+                        <?php foreach (session()->getFlashdata('errors') as $error): ?>
+                            <li><?= esc($error) ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            <?php endif; ?>
+
             <div class="form-group">
                 <label for="fullname">Full Name</label>
                 <div class="input-wrapper">
                     <i class="ti ti-user"></i>
-                    <input type="text" id="fullname" name="fullname" placeholder="Enter your full name" required>
+                    <input type="text" id="fullname" name="fullname" placeholder="Enter your full name" value="<?= esc(old('fullname')) ?>" required>
                 </div>
             </div>
 
@@ -57,7 +73,7 @@
                 <label for="email">Email Address</label>
                 <div class="input-wrapper">
                     <i class="ti ti-mail"></i>
-                    <input type="email" id="email" name="email" placeholder="Enter your email" required>
+                    <input type="email" id="email" name="email" placeholder="Enter your email" value="<?= esc(old('email')) ?>" required>
                 </div>
             </div>
 
@@ -65,7 +81,16 @@
                 <label for="password">Password</label>
                 <div class="input-wrapper">
                     <i class="ti ti-lock"></i>
-                    <input type="password" id="password" name="password" placeholder="Create a password" required>
+                    <input type="password" id="password" name="password" placeholder="Create a password" minlength="8" required>
+                </div>
+                <span style="font-size: 12px; color: #666;">Use 8+ characters, uppercase, lowercase, number, and symbol.</span>
+            </div>
+
+            <div class="form-group">
+                <label for="password_confirmation">Confirm Password</label>
+                <div class="input-wrapper">
+                    <i class="ti ti-lock"></i>
+                    <input type="password" id="password_confirmation" name="password_confirmation" placeholder="Repeat your password" minlength="8" required>
                 </div>
             </div>
 

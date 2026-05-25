@@ -3,10 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <title>Finance Dashboard - Ordering System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', 'Segoe UI', sans-serif; }
         body { display: flex; background: #f5f5f5; min-height: 100vh; }
         
         .sidebar { width: 260px; background: #0F6E56; color: white; padding: 1.5rem; display: flex; flex-direction: column; gap: 2rem; position: fixed; height: 100vh; }
