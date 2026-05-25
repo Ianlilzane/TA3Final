@@ -12,7 +12,10 @@ class ProductModel extends Model
 
     protected $allowedFields = [
         'product_name',
+        'name',
+        'category',
         'price',
-        'stock'
+        'stock',
+        'image_url'
     ];
 }

@@ -89,6 +89,13 @@ $bestSellers = $bestSellers ?? [];
         .btn-approve:hover { background: #085041; }
         .btn-reject { background: #dc2626; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: 600; font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: 0.2s; }
         .btn-reject:hover { background: #991b1b; }
+        .btn-edit { background: #2563eb; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: 600; font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: 0.2s; }
+        .btn-edit:hover { background: #1d4ed8; }
+        .btn-delete { background: #ef4444; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: 600; font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: 0.2s; }
+        .btn-delete:hover { background: #b91c1c; }
+        .admin-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+        .admin-form-grid .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .admin-form-grid .form-group input, .admin-form-grid .form-group select { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 13px; }
     </style>
 </head>
 <body>
@@ -105,7 +112,17 @@ $bestSellers = $bestSellers ?? [];
     </div>
 
     <div class="main-content">
-        
+        <?php if (session()->getFlashdata('success')): ?>
+            <div style="background:#ecfdf5;color:#166534;padding:16px;border:1px solid #bbf7d0;border-radius:12px;margin-bottom:1rem;">
+                <?= esc(session()->getFlashdata('success')) ?>
+            </div>
+        <?php endif; ?>
+        <?php if (session()->getFlashdata('error')): ?>
+            <div style="background:#fee2e2;color:#991b1b;padding:16px;border:1px solid #fca5a5;border-radius:12px;margin-bottom:1rem;">
+                <?= esc(session()->getFlashdata('error')) ?>
+            </div>
+        <?php endif; ?>
+
         <div id="tab-dashboard" class="tab-content active">
             <div class="header">
                 <h1>System Overview</h1>
@@ -201,6 +218,41 @@ $bestSellers = $bestSellers ?? [];
                 <p>Monitor real-time warehouse stock deductions (Baseline: 100 pcs per item).</p>
             </div>
             <div class="panel">
+                <h4><i class="ti ti-plus"></i> Add New Product</h4>
+                <form action="<?= base_url('admin/dashboard/createProduct') ?>" method="POST" enctype="multipart/form-data" class="admin-form-grid">
+                    <?= csrf_field() ?>
+                    <div class="form-group">
+                        <label>Product Name</label>
+                        <input type="text" name="name" placeholder="e.g. RCB E-Series Caliper Set" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select name="category" required>
+                            <option value="Engine Parts">Engine Parts</option>
+                            <option value="Brake Set">Brake Set</option>
+                            <option value="Tire and Wheels">Tire and Wheels</option>
+                            <option value="Accessories">Accessories</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Price</label>
+                        <input type="number" name="price" step="0.01" min="0" placeholder="0.00" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Stock Quantity</label>
+                        <input type="number" name="stock" min="0" placeholder="0" required>
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Product Image (optional)</label>
+                        <input type="file" name="product_image" accept="image/jpeg,image/png,image/gif,image/webp">
+                    </div>
+                    <div class="form-group" style="grid-column: span 2; text-align:right; margin-top:0.3rem;">
+                        <button type="submit" class="btn-approve" style="width:auto;">Add Product</button>
+                    </div>
+                </form>
+            </div>
+            <div class="panel">
                 <h4><i class="ti ti-box"></i> Stock Control Deck</h4>
                 <table class="custom-table">
                     <thead>
@@ -212,6 +264,7 @@ $bestSellers = $bestSellers ?? [];
                             <th>Unit Retail Price</th>
                             <th>Available Stock (Pcs)</th>
                             <th>Status Badge</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -259,6 +312,10 @@ $bestSellers = $bestSellers ?? [];
                                 <button type="button" onclick="promptImageUpdate(<?= $p['id'] ?>)" style="margin-top: 8px; background:#185FA5; color:white; border:none; border-radius:6px; padding:6px 10px; font-size:11px; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
                                     <i class="ti ti-photo"></i> Set Image
                                 </button>
+                            </td>
+                            <td style="white-space: nowrap; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                <button type="button" class="btn-edit" onclick='promptEditProduct(<?= $p['id'] ?>, <?= json_encode($p['name']) ?>, <?= json_encode($p['category']) ?>, <?= $p['price'] ?>, <?= $p['stock'] ?>, <?= json_encode($p['image_url'] ?? '') ?>)'><i class="ti ti-pencil"></i> Edit</button>
+                                <button type="button" class="btn-delete" onclick='deleteProduct(<?= $p['id'] ?>, <?= json_encode($p['name']) ?>)'><i class="ti ti-trash"></i> Delete</button>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -372,22 +429,72 @@ $bestSellers = $bestSellers ?? [];
         }
 
         function promptImageUpdate(productId) {
-            const imageUrl = prompt('Enter a public image URL for this product:');
-            if (!imageUrl) {
-                return;
-            }
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = 'image/jpeg,image/png,image/gif,image/webp';
+            
+            fileInput.onchange = function() {
+                if (!fileInput.files || !fileInput.files[0]) {
+                    return;
+                }
+                
+                const file = fileInput.files[0];
+                const maxSize = 5 * 1024 * 1024; // 5MB
+                
+                if (file.size > maxSize) {
+                    alert('Image file size must be less than 5MB.');
+                    return;
+                }
 
-            const validUrl = /^https?:\/\/.+$/i;
-            if (!validUrl.test(imageUrl)) {
-                alert('Please provide a valid image URL that begins with http:// or https://');
+                let formData = new window.FormData();
+                formData.append('product_id', productId);
+                formData.append('image_file', file);
+
+                fetch('<?= base_url("admin/dashboard/uploadProductImage") ?>', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert(data.message);
+                        window.location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(() => alert('Unable to upload image.'));
+            };
+            
+            fileInput.click();
+        }
+
+        function promptEditProduct(productId, currentName, currentCategory, currentPrice, currentStock, currentImageUrl) {
+            const name = prompt('Product Name', currentName);
+            if (name === null) return;
+
+            const category = prompt('Category', currentCategory);
+            if (category === null) return;
+
+            const price = prompt('Price', currentPrice);
+            if (price === null) return;
+
+            const stock = prompt('Stock Quantity', currentStock);
+            if (stock === null) return;
+
+            if (name.trim() === '' || category.trim() === '' || isNaN(parseFloat(price)) || isNaN(parseInt(stock, 10))) {
+                alert('Please provide valid values for name, category, price, and stock.');
                 return;
             }
 
             let formData = new window.FormData();
             formData.append('product_id', productId);
-            formData.append('image_url', imageUrl);
+            formData.append('name', name.trim());
+            formData.append('category', category.trim());
+            formData.append('price', parseFloat(price));
+            formData.append('stock', parseInt(stock, 10));
 
-            fetch('<?= base_url("admin/dashboard/updateImage") ?>', {
+            fetch('<?= base_url("admin/dashboard/updateProduct") ?>', {
                 method: 'POST',
                 body: formData
             })
@@ -400,7 +507,31 @@ $bestSellers = $bestSellers ?? [];
                     alert('Error: ' + data.message);
                 }
             })
-            .catch(() => alert('Unable to update image.'));
+            .catch(() => alert('Unable to update the product.'));
+        }
+
+        function deleteProduct(productId, productName) {
+            if (!confirm(`Delete product ${productName} from inventory? This cannot be undone.`)) {
+                return;
+            }
+
+            let formData = new window.FormData();
+            formData.append('product_id', productId);
+
+            fetch('<?= base_url("admin/dashboard/deleteProduct") ?>', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert(data.message);
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(() => alert('Unable to delete the product.'));
         }
 
         // 3. Analytics Chart Generation (DYNAMIC CONNECTED VERSION)
